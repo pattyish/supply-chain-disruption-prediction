@@ -20,6 +20,7 @@ Suggested Action: Reroute through Dallas hub
 
 Repository layout
 -----------------
+```
 - data/
   - raw/                # place downloaded raw datasets here
   - processed/          # processed datasets created by pipeline
@@ -37,23 +38,20 @@ Repository layout
   - delay_model.pkl     # trained model artifact (output)
 - docs/
   - architecture.md     # architecture diagram and notes
+  ```
 
 Datasets to download and place in `data/raw/`
 ---------------------------------------------
-1. Global Supply Chain Pressure Index (GSCPI) — New York Fed
-   https://www.newyorkfed.org/medialibrary/research/interactives/gscpi/downloads/gscpi_data.xlsx
+1. Global Supply Chain Pressure Index (GSCPI) — New York Fed: [link](https://www.newyorkfed.org/medialibrary/research/interactives/gscpi/downloads/gscpi_data.xlsx)
    Save as: `data/raw/gscpi_data.xlsx`
 
-2. AIS Maritime Shipping Data
-   https://marinecadastre.gov/ais/
+2. AIS Maritime Shipping Data: [link](https://marinecadastre.gov/ais/)
    Save as: `data/raw/ais_shipping.csv`
 
-3. Port Congestion Data (e.g., Port of Los Angeles statistics)
-   https://www.portoflosangeles.org/business/statistics/container-statistics
+3. Port Congestion Data (e.g., Port of Los Angeles statistics): [link](https://www.portoflosangeles.org/business/statistics/container-statistics)
    Save as: `data/raw/port_container_stats.csv`
 
-4. NOAA Weather Data (optional)
-   https://www.ncdc.noaa.gov/cdo-web/datasets
+4. NOAA Weather Data (optional): [link](https://www.ncdc.noaa.gov/cdo-web/datasets)
    Save as: `data/raw/weather_data.csv`
 
 Getting started
