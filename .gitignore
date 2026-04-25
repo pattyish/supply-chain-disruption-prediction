@@ -1,1 +1,54 @@
-.venv/.venv/
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local data files (keep folders, ignore bulk raw data)
+data/raw/*.csv
+data/raw/*.xlsx
+data/raw/*.xls
+data/raw/*.parquet
+data/raw/*.json
+
+# Generated processed data and runtime artifacts
+data/processed/*.jsonl
+data/processed/*.csv
+!data/processed/.gitkeep
+
+# Model artifacts
+models/*.pkl
+models/*.joblib
+models/*.onnx
+
+# Local streamlit secrets
+.streamlit/secrets.toml
