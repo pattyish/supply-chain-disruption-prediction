@@ -4,6 +4,11 @@ AI System for Predictive Monitoring of Supply Chain Disruptions
 This project is a lightweight, practical disruption-monitoring system for supply chain operations.
 It predicts delay risk, estimates economic impact, recommends cost-aware rerouting, analyzes anomalies with root-cause playbooks, and logs model provenance + feedback for active learning.
 
+Dashboard preview
+-----------------
+
+![Dashboard full view](reports/figures/dashboard-full-2x2.png)
+
 Why this project
 ----------------
 Supply chains face frequent volatility from congestion, weather, and route complexity. Teams need a fast system that is easy to run and still provides actionable outputs.
@@ -46,7 +51,7 @@ Technology and models
 - Dashboard: Streamlit
 - Data/ML: pandas, numpy, scikit-learn, xgboost (available), joblib
 
-Current model in this repo:
+Current primary model:
 
 - `models/delay_model.pkl` built by `src/models/train_minimal.py`
 - Type: Logistic Regression (scikit-learn pipeline with scaling)
@@ -56,6 +61,40 @@ Current model in this repo:
   - `port_wait_time`
   - `weather_risk`
   - `distance_km`
+
+Model names used in this project
+--------------------------------
+
+The project uses one trained ML model plus several named decision/analytics models in the service layer.
+
+- **delay_logistic_baseline (active, trained)**
+  - Artifact: `models/delay_model.pkl`
+  - Type: Logistic Regression pipeline (`StandardScaler` + `LogisticRegression`)
+  - Endpoint usage: `POST /predict`, `POST /impact`, `POST /optimize/reroute`, `POST /analyze/anomaly`
+
+- **economic_impact_estimator_v1 (active, formula model)**
+  - Type: deterministic impact model for expected delay cost and SLA penalty
+  - Endpoint usage: `POST /impact`, `POST /optimize/reroute`
+
+- **reroute_cost_optimizer_v1 (active, optimizer model)**
+  - Type: cost-aware route ranking optimizer using synthetic route candidates
+  - Endpoint usage: `POST /optimize/reroute`
+
+- **zscore_anomaly_detector_v1 (active, statistical model)**
+  - Type: z-score anomaly detector using synthetic shipment baseline statistics
+  - Endpoint usage: `POST /analyze/anomaly`
+
+- **playbook_mapper_v1 (active, rule model)**
+  - Type: root-cause-to-action playbook mapping rules
+  - Endpoint usage: `POST /analyze/anomaly`
+
+Planned model names (roadmap)
+-----------------------------
+
+- `delay_xgboost_classifier_v1`
+- `delay_hours_xgboost_regressor_v1`
+- `congestion_lstm_forecaster_v1`
+- `anomaly_iforest_ensemble_v1`
 
 Project structure
 -----------------
@@ -110,6 +149,29 @@ python src/models/train_minimal.py
 
 uvicorn api.main:app --reload --host 0.0.0.0 --port 8000
 streamlit run dashboard/app.py
+```
+
+Quick verification
+------------------
+
+After starting services, verify both apps:
+
+- API docs: `http://127.0.0.1:8000/docs`
+- Dashboard: `http://localhost:8501`
+
+Export dashboard screenshots (2x2 collage)
+------------------------------------------
+
+You can export one image per dashboard tab and merge them into a single 2x2 image:
+
+```powershell
+python scripts/export_dashboard_images.py --url http://localhost:8501 --out-dir reports/figures --merged-name dashboard-full-2x2.png
+```
+
+First-time Playwright setup (one-time):
+
+```powershell
+python -m playwright install chromium
 ```
 
 API endpoints
@@ -183,9 +245,9 @@ flowchart LR
 How this differs from larger "agentic" systems
 ------------------------------------------------
 
-- This project is intentionally lightweight and operator-focused.
-- It prioritizes low-friction deployment and explainable outputs over a heavy research/MLOps stack.
-- Advanced modules are implemented in practical form (impact, optimization, anomaly playbooks, provenance) without requiring distributed training infrastructure.
+This project is intentionally lightweight and operator-focused.
+It prioritizes low-friction deployment and explainable outputs over a heavy research/MLOps stack.
+Advanced modules are implemented in practical form (impact, optimization, anomaly playbooks, provenance) without requiring distributed training infrastructure.
 
 Roadmap
 -------

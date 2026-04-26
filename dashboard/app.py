@@ -8,14 +8,30 @@ import streamlit as st
 API_BASE = "http://localhost:8000"
 
 
-def post_json(endpoint: str, payload: dict) -> dict:
-    resp = requests.post(f"{API_BASE}{endpoint}", json=payload, timeout=10.0)
-    resp.raise_for_status()
-    return resp.json()
+def post_json(endpoint: str, payload: dict, timeout: float = 30.0) -> dict:
+    last_error: Exception | None = None
+    for _ in range(2):
+        try:
+            resp = requests.post(f"{API_BASE}{endpoint}", json=payload, timeout=timeout)
+            resp.raise_for_status()
+            return resp.json()
+        except requests.exceptions.HTTPError as exc:
+            detail = ""
+            try:
+                body = exc.response.json()
+                detail = body.get("detail") or body.get("message") or str(body)
+            except Exception:
+                detail = str(exc)
+            raise RuntimeError(f"API error on {endpoint}: {detail}") from exc
+        except requests.exceptions.ReadTimeout as exc:
+            last_error = exc
+            continue
+
+    raise RuntimeError(f"API request timed out for {endpoint}: {last_error}")
 
 
-def get_json(endpoint: str) -> dict:
-    resp = requests.get(f"{API_BASE}{endpoint}", timeout=10.0)
+def get_json(endpoint: str, timeout: float = 20.0) -> dict:
+    resp = requests.get(f"{API_BASE}{endpoint}", timeout=timeout)
     resp.raise_for_status()
     return resp.json()
 
@@ -121,10 +137,50 @@ with tab_opt:
                 payload["budget_usd"] = float(budget)
             result = post_json("/optimize/reroute", payload)
 
-            st.write("Recommended route")
-            st.json(result["recommended_route"])
-            st.write("Alternatives")
-            st.dataframe(pd.DataFrame(result["alternatives"]))
+            if not result.get("budget_feasible", True):
+                st.warning(result.get("message", "Budget constraint not feasible; showing unconstrained best route."))
+
+            rec = result["recommended_route"]
+
+            st.markdown("### Recommended Route")
+            top1, top2, top3, top4 = st.columns(4)
+            top1.metric("Route ID", rec["route_id"])
+            top2.metric("Risk Level", rec["risk_level"])
+            top3.metric("Delay Probability", f"{rec['delay_probability'] * 100:.1f}%")
+            top4.metric("Optimized Total Cost", f"${rec['optimized_total_cost_usd']:,.2f}")
+
+            mid1, mid2, mid3, mid4 = st.columns(4)
+            mid1.metric("Base Cost", f"${rec['base_cost_usd']:,.2f}")
+            mid2.metric("Expected Impact", f"${rec['expected_total_impact_usd']:,.2f}")
+            mid3.metric("Transit Hours", f"{rec['transit_hours']:.2f} h")
+            mid4.metric("Reliability", f"{rec['reliability'] * 100:.1f}%")
+
+            st.caption(
+                f"Lane: {rec['origin']} -> {rec['destination']} | Distance: {rec['distance_km']:.2f} km"
+            )
+
+            st.markdown("### Alternative Routes")
+            alt_df = pd.DataFrame(result["alternatives"])
+            alt_df = alt_df.rename(
+                columns={
+                    "route_id": "Route",
+                    "origin": "Origin",
+                    "destination": "Destination",
+                    "distance_km": "Distance (km)",
+                    "transit_hours": "Transit (h)",
+                    "reliability": "Reliability",
+                    "delay_probability": "Delay Prob",
+                    "risk_level": "Risk",
+                    "base_cost_usd": "Base Cost (USD)",
+                    "expected_total_impact_usd": "Expected Impact (USD)",
+                    "optimized_total_cost_usd": "Optimized Total (USD)",
+                }
+            )
+
+            for col in ["Reliability", "Delay Prob"]:
+                alt_df[col] = (alt_df[col] * 100).round(2)
+
+            st.dataframe(alt_df, use_container_width=True, hide_index=True)
         except Exception as e:
             st.error(f"Optimization failed: {e}")
 

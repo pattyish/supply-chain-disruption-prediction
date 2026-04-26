@@ -287,16 +287,27 @@ def optimize_reroute(req: OptimizeRouteRequest) -> dict[str, Any]:
             }
         )
 
+    all_ranked = sorted(candidates, key=lambda x: (x["optimized_total_cost_usd"], x["delay_probability"]))
     if req.budget_usd is not None:
-        candidates = [c for c in candidates if c["optimized_total_cost_usd"] <= req.budget_usd]
+        candidates = [c for c in all_ranked if c["optimized_total_cost_usd"] <= req.budget_usd]
+    else:
+        candidates = all_ranked
 
     if not candidates:
-        raise HTTPException(status_code=422, detail="No route candidates satisfy the provided budget.")
+        return {
+            "baseline_delay_probability": round(base_prob, 6),
+            "baseline_risk_level": _risk_band(base_prob),
+            "budget_feasible": False,
+            "message": "No route candidates satisfy the provided budget. Showing best unconstrained route.",
+            "recommended_route": all_ranked[0],
+            "alternatives": all_ranked,
+        }
 
-    ranked = sorted(candidates, key=lambda x: (x["optimized_total_cost_usd"], x["delay_probability"]))
+    ranked = candidates
     return {
         "baseline_delay_probability": round(base_prob, 6),
         "baseline_risk_level": _risk_band(base_prob),
+        "budget_feasible": True,
         "recommended_route": ranked[0],
         "alternatives": ranked,
     }

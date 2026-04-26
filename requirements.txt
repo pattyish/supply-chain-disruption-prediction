@@ -6,3 +6,5 @@ fastapi
 uvicorn
 streamlit
 numpy
+playwright
+Pillow
